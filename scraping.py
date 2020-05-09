@@ -14,20 +14,23 @@ def getDesc(link):
     soup = BeautifulSoup(request.text,'html.parser')
     livro = soup.find_all('div',class_='product_main')[0]
     titulo = livro.find('h1').text
-    preco_incl = livro.find('table',class_='table').find_all('tr')[3].find('td').text
-    preco_excl = livro.find('table',class_='table').find_all('tr')[2].find('td').text
+    preco_incl = soup.find('table',class_='table').find_all('tr')[3].find('td').text
+    preco_incl = re.search('[0-9.]+', preco_incl).group()
+    preco_excl = soup.find('table',class_='table').find_all('tr')[2].find('td').text
+    preco_excl = re.search('[0-9.]+', preco_excl).group()
     link_livro = link
-    product_type = livro.find('table',class_='table').find_all('tr')[1].find('td').text
-    UPC = livro.find('table',class_='table').find_all('tr')[0].find('td').text
-    tax = livro.find('table',class_='table').find_all('tr')[4].find('td').text
-    nmbr_review = livro.find('table',class_='table').find_all('tr')[6].find('td').text
-    availibility = livro.find('table',class_='table').find_all('tr')[5].find('td').text
-    desc = livro.find('article',class_='product_page').find('p').text
-    img_link = livro.find_all('div',class_='item active')[0].find('img',src=True)['src']
+    product_type = soup.find('table',class_='table').find_all('tr')[1].find('td').text
+    UPC = soup.find('table',class_='table').find_all('tr')[0].find('td').text
+    tax = soup.find('table',class_='table').find_all('tr')[4].find('td').text
+    tax = re.search('[0-9.]+', tax).group()
+    nmbr_review = soup.find('table',class_='table').find_all('tr')[6].find('td').text
+    availibility = soup.find('table',class_='table').find_all('tr')[5].find('td').text
+    desc = soup.find('article',class_='product_page').find_all('p')[1].text
+    img_link = soup.find_all('div',class_='item active')[0].find('img',src=True)['src']
     qnt = int(re.sub('[^0-9]', '', availibility))
     availibility = availibility.split('(')[0]
 
-    return {"titulo":titulo,
+    teste= {"titulo":titulo,
             "preco_incl":preco_incl,
             "preco_excl":preco_excl,
             "link":link_livro,
@@ -39,15 +42,9 @@ def getDesc(link):
             "img_link":img_link,
             "quantidade":qnt,
             "disponibilidade":availibility}
-
-
-    
-    
-
-
-
-
-
+    print(teste)
+    os.sys.exit()
+    return teste
 
 def getBooks(link):
     #print(link)
