@@ -7,6 +7,7 @@ import os
 
 original_link = 'http://books.toscrape.com/'
 link_book = 'http://books.toscrape.com/catalogue'
+link_pages='http://books.toscrape.com/catalogue/category/books/'
 
 def getDesc(link):
     request = requests.get(link)
@@ -25,12 +26,12 @@ def getDesc(link):
     tax = re.search('[0-9.]+', tax).group()
     nmbr_review = soup.find('table',class_='table').find_all('tr')[6].find('td').text
     availibility = soup.find('table',class_='table').find_all('tr')[5].find('td').text
-    desc = soup.find('article',class_='product_page').find_all('p')[1].text
+    #desc = soup.find('article',class_='product_page').find_all('p')[1].text
     img_link = soup.find_all('div',class_='item active')[0].find('img',src=True)['src']
     qnt = int(re.sub('[^0-9]', '', availibility))
     availibility = availibility.split('(')[0]
 
-    teste= {"titulo":titulo,
+    return {"titulo":titulo,
             "preco_incl":preco_incl,
             "preco_excl":preco_excl,
             "link":link_livro,
@@ -38,24 +39,29 @@ def getDesc(link):
             "UPC":UPC,
             "tax":tax,
             "numero_review":nmbr_review,
-            "descricao":desc,
+            #"descricao":desc,
             "img_link":img_link,
             "quantidade":qnt,
             "disponibilidade":availibility}
-    print(teste)
-    os.sys.exit()
-    return teste
 
-def getBooks(link):
-    #print(link)
+def getBooks(link,categoria,cat):
     requ = requests.get(link)
     assert requ.status_code==200,f'not found'
     soup = BeautifulSoup(requ.text,'html.parser')
-    livros_pag = soup.find_all("section")[0].find_all('div')[1].find_all('li')
+    livros_pag = soup.find_all("section")[0].find_all('div')[1].find('ol').find_all('li')
+    next_page = soup.find('li',class_='next')
+    dictionary = []
+    if livros_pag != None:    
+        for livro in livros_pag:
+            link = livro.find('a',href=True)
+            descricao = getDesc(link_book+link['href'].split('..')[3])
+            descricao['category'] = categoria
+            dictionary.append(descricao)
+        
+        if next_page != None:
+            getBooks(link_pages+categoria+'/'+next_page.find('a',href=True)['href'],categoria,cat)
     
-    for livro in livros_pag:
-        link = livro.find('a',href=True)
-        book = getDesc(link_book+link['href'].split('..')[3])
+    return dictionary
 
 
 
@@ -73,27 +79,12 @@ def getCategories(soup):
         conteudo = l.find('a')
         lista_links.append(original_link + link['href'])
         categories.append(conteudo.text.strip())
-    #print(categories)
 
-    '''{"titulo":titulo,
-    "preco_excl":preco_semtaxa,
-    "preco_incl":preco_comtaxa,
-    "descricao":descricao,
-    "link":link,
-    "img":img,
-    "product_type":pt,
-    "tax":impostos,
-    "availibility":{"inStock":true,"qnt":2},
-    "reviews":numberreviews,
-    "quantidade_estrela":2,
-    "category":categoria,
-    "UPC":UPC
-    }'''
-    dic = {}
-    list_prod = []
+    books = []
     for i,link_cat in enumerate(lista_links):
         categoria = categories[i]
-        getBooks(link_cat)
+        print(categoria)
+        books.append(getBooks(link_cat,link_cat.split('/')[6],categoria))
         
 
 
