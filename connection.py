@@ -13,7 +13,7 @@ class Connection:
         except ConnectionFailure:
             raise ConnectionFailure("error")
 
-    def select(self, query):
+    def get(self, query):
         print(query)
         return self.collection.find(query)
 
