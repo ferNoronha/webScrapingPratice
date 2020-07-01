@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import pickle
 import os
-
+from booksDAO import BooksDAO
 
 original_link = 'http://books.toscrape.com/'
 link_book = 'http://books.toscrape.com/catalogue'
@@ -44,53 +44,67 @@ def getDesc(link):
             "quantidade":qnt,
             "disponibilidade":availibility}
 
-def getBooks(link,categoria,cat):
-    requ = requests.get(link)
-    assert requ.status_code==200,f'not found'
-    soup = BeautifulSoup(requ.text,'html.parser')
+def getBooks(link,categoria,cat,_id):
+    request = requests.get(link)
+    assert request.status_code==200,f'not found'
+    soup = BeautifulSoup(request.text,'html.parser')
     livros_pag = soup.find_all("section")[0].find_all('div')[1].find('ol').find_all('li')
     next_page = soup.find('li',class_='next')
-    dictionary = []
+    allBooks = []
     if livros_pag != None:    
         for livro in livros_pag:
             link = livro.find('a',href=True)
             descricao = getDesc(link_book+link['href'].split('..')[3])
+            descricao['g:id'] = _id
+            _id +=1
             descricao['category'] = categoria
-            dictionary.append(descricao)
+            allBooks.append(descricao)
         
         if next_page != None:
-            getBooks(link_pages+categoria+'/'+next_page.find('a',href=True)['href'],categoria,cat)
-    
-    return dictionary
+            getBooks(link_pages+categoria+'/'+next_page.find('a',href=True)['href'],categoria,cat,_id)
+
+    return (allBooks,_id)
 
 
 
 
 
 def getCategories(soup):
+    _id = 0
     div = soup.find_all('div',class_='side_categories')
     uls = div[0].find_all('ul')
     lis = uls[1].find_all('li')
     
     lista_links = []
-    categories = []
+    categorias = []
     for l in lis:
         link = l.find('a',href=True)
-        conteudo = l.find('a')
+        #conteudo = l.find('a')
         lista_links.append(original_link + link['href'])
-        categories.append(conteudo.text.strip())
+        categorias.append(link.text.strip())
 
-    books = []
+    books = [] 
     for i,link_cat in enumerate(lista_links):
-        categoria = categories[i]
+        categoria = categorias[i]
         print(categoria)
-        books.append(getBooks(link_cat,link_cat.split('/')[6],categoria))
-        
+        allbooks,_id = getBooks(link_cat,link_cat.split('/')[6],categoria,_id)
+        books.append(allbooks)
+    
+
+    dao = BooksDAO()
+    
+
+    for i in books:
+        for j in i:
+            dao.update({'g:id':j['g:id']},j,upsert=True)
+    print('finalizou')
 
 
-if __name__ == "__main__":  
+if __name__ == "__main__":
     res = requests.get('http://books.toscrape.com/')
-    assert res.status_code == 200,f"Response{res.status_code}"
+    dao = BooksDAO()
+    assert res.status_code == 200,dao.insertError("Response"+res.status_code)
+    dao.close()
     soup = BeautifulSoup(res.text,'html.parser')
     getCategories(soup)
 
