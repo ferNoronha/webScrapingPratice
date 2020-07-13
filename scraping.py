@@ -9,6 +9,8 @@ original_link = 'http://books.toscrape.com/'
 link_book = 'http://books.toscrape.com/catalogue'
 link_pages='http://books.toscrape.com/catalogue/category/books/'
 
+_id = 0
+
 def getDesc(link):
     request = requests.get(link)
     assert request.status_code==200,f'not found'
@@ -44,26 +46,31 @@ def getDesc(link):
             "quantidade":qnt,
             "disponibilidade":availibility}
 
-def getBooks(link,categoria,cat,_id):
+def getBooks(link,categoria,cat):
+    global _id
     request = requests.get(link)
     assert request.status_code==200,f'not found'
     soup = BeautifulSoup(request.text,'html.parser')
     livros_pag = soup.find_all("section")[0].find_all('div')[1].find('ol').find_all('li')
     next_page = soup.find('li',class_='next')
     allBooks = []
-    if livros_pag != None:    
+    
+    if livros_pag != None:
+        dao = BooksDAO()    
         for livro in livros_pag:
             link = livro.find('a',href=True)
             descricao = getDesc(link_book+link['href'].split('..')[3])
             descricao['g:id'] = _id
+            print(str(_id)+' - '+descricao['link'])
             _id +=1
             descricao['category'] = categoria
+            dao.update({'g:id':descricao['g:id']},descricao,upsert=True)
             allBooks.append(descricao)
-        
+        dao.close()
         if next_page != None:
-            getBooks(link_pages+categoria+'/'+next_page.find('a',href=True)['href'],categoria,cat,_id)
+            getBooks(link_pages+categoria+'/'+next_page.find('a',href=True)['href'],categoria,cat)
 
-    return (allBooks,_id)
+    return (allBooks)
 
 
 
@@ -87,16 +94,16 @@ def getCategories(soup):
     for i,link_cat in enumerate(lista_links):
         categoria = categorias[i]
         print(categoria)
-        allbooks,_id = getBooks(link_cat,link_cat.split('/')[6],categoria,_id)
+        allbooks = getBooks(link_cat,link_cat.split('/')[6],categoria)
         books.append(allbooks)
     
 
-    dao = BooksDAO()
+    
     
 
-    for i in books:
-        for j in i:
-            dao.update({'g:id':j['g:id']},j,upsert=True)
+    #for i in books:
+    #    for j in i:
+            #dao.update({'g:id':j['g:id']},j,upsert=True)
     print('finalizou')
 
 
