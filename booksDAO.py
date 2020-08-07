@@ -1,17 +1,14 @@
 from connection import Connection
 import json
-from os import getenv 
-#mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false
+from os import getenv
+import configparser
 
-CLIENT = 'mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass&ssl=false'
-DATABASE = 'Testes'
-PORT = 27017
-COLLECTION = 'Books'
+Config = configparser.RawConfigParser()
+Config.read("configFile.ini")
 
 class BooksDAO:
     def __init__(self):
-        print(CLIENT)
-        self.con = Connection(CLIENT,PORT,DATABASE,COLLECTION)
+        self.con = Connection(Config.get('mongoSection','Uri'),int(Config.get('mongoSection','Port')),Config.get('mongoSection','Database'),Config.get('mongoSection','Collection'))
 
     def insert(self,documents):    
         return self.con.insert(documents)
